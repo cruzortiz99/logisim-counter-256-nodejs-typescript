@@ -6,7 +6,7 @@ const binaryFile = fs.createWriteStream(binaryRoute)
 const counter = (module: number) => {
   let i = 0
   for (i = 0; i < module; i++) {
-    binaryFile.write(`${i} `)
+    binaryFile.write(`${i} `, 'binary')
   }
 }
 
