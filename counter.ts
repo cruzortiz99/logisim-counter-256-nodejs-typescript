@@ -4,52 +4,62 @@ import path from 'path'
 const filePath = path.join(__dirname, 'counter-256.txt')
 const file = fs.createWriteStream(filePath)
 
+file.write('v2.0 raw\n')
+
 type CounterWriter = (count: number, file: fs.WriteStream) => void
-type Counter = (module: number, file: fs.WriteStream) => void
 
-const writeBinary: CounterWriter = (count: number, file: fs.WriteStream) => {
-  file.write(`${count}`)
-}
-const writeBCD: CounterWriter = (count: number, file: fs.WriteStream) => {
-  file.write(`${count}`)
+const transformToHex = (count: number) => {
+  switch (count) {
+    case 15:
+      return 'F'
+    case 14:
+      return 'E'
+    case 13:
+      return 'D'
+    case 12:
+      return 'C'
+    case 11:
+      return 'B'
+    case 10:
+      return 'A'
+    default:
+      return `${count}`
+  }
 }
 
-const writeCountIn = (
+export const writeBinary: CounterWriter = (
   count: number,
-  encoding: 'bcd' | 'binary',
   file: fs.WriteStream
 ) => {
-  switch (encoding) {
-    case 'bcd':
-      writeBCD(count, file)
-      break
-    case 'binary':
-      writeBinary(count, file)
-      break
+  let mods: Array<string> = []
+  let mod = count % 16
+  mods.push(transformToHex(mod))
+  let res = Math.floor(count / 16)
+  while (res >= 16) {
+    mod = res % 16
+    mods.push(transformToHex(mod))
+    res = Math.floor(res / 16)
   }
-  file.write(' ')
+  mods.push(transformToHex(res))
+  mods.push(transformToHex(0))
+  file.write(mods.reverse().join(''))
 }
 
-const counterAsc: Counter = (module, file) => {
-  let coded: ['binary', 'bcd'] = ['binary', 'bcd']
-  coded.forEach((code) => {
-    let i = 0
-    for (i; i < module; i++) {
-      writeCountIn(i, code, file)
-    }
-    file.write('\n')
-  })
-}
-const counterDes: Counter = (module, file) => {
-  let coded: ['binary', 'bcd'] = ['binary', 'bcd']
-  coded.forEach((code) => {
-    let i = module - 1
-    for (i; i >= 0; i--) {
-      writeCountIn(i, code, file)
+const count = (module: number, file: fs.WriteStream) => {
+  let directions: ['asc', 'desc'] = ['asc', 'desc']
+  let encoded: ['binary', 'bcd'] = ['binary', 'bcd']
+  directions.forEach((dir) => {
+    let ep = 0
+    for (ep; ep < module; ep++) {
+      if (dir === 'asc') {
+        writeBinary(ep + 1, file)
+      } else {
+        writeBinary(ep - 1, file)
+      }
+      file.write(' ')
     }
     file.write('\n')
   })
 }
 
-counterAsc(10, file)
-counterDes(10, file)
+count(256, file)
