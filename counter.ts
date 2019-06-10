@@ -52,9 +52,9 @@ const count = (module: number, file: fs.WriteStream) => {
     let ep = 0
     for (ep; ep < module; ep++) {
       if (dir === 'asc') {
-        writeBinary(ep + 1, file)
+        writeBinary(ep + 1 >= module ? 0 : ep + 1, file)
       } else {
-        writeBinary(ep - 1, file)
+        writeBinary(ep - 1 < 0 ? module - 1 : ep - 1, file)
       }
       file.write(' ')
     }
